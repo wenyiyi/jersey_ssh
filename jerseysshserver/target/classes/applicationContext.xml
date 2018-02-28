@@ -1,0 +1,99 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+		    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		    xmlns:aop="http://www.springframework.org/schema/aop"
+		    xmlns:context="http://www.springframework.org/schema/context"
+		    xmlns:tx="http://www.springframework.org/schema/tx"
+		    xsi:schemaLocation="
+			http://www.springframework.org/schema/beans
+			http://www.springframework.org/schema/beans/spring-beans.xsd
+			http://www.springframework.org/schema/aop
+			http://www.springframework.org/schema/aop/spring-aop.xsd
+			http://www.springframework.org/schema/tx
+			http://www.springframework.org/schema/tx/spring-tx.xsd
+			http://www.springframework.org/schema/context
+			http://www.springframework.org/schema/context/spring-context.xsd
+		    ">
+    <!-- 加载配置文件 -->
+	<context:property-placeholder location="classpath:config.properties"/>
+	
+	<!-- 开启spring的注解编程，并提供包扫描 -->
+	<context:component-scan base-package="com。wyd"></context:component-scan>
+	<context:annotation-config/>
+	
+	<!-- 配置数据源 c3p0 -->
+	<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close">
+		<property name="driverClass" value="${jdbc.driver}" />
+		<property name="jdbcUrl" value="${jdbc.url}" />
+		<property name="user" value="${jdbc.username}" />
+		<property name="password" value="${jdbc.password}" />
+
+		<!-- 请求超时时间 -->
+		<property name="checkoutTimeout" value="30000" />
+		<!-- 每60秒检查所有连接池中的空闲连接。默认值: 0，不检查 -->
+		<property name="idleConnectionTestPeriod" value="30" />
+		<!-- 连接数据库连接池最大空闲时间 -->
+		<property name="maxIdleTime" value="30" />
+		<!-- 连接池初始化连接数 -->
+		<property name="initialPoolSize" value="5" />
+		<property name="minPoolSize" value="5" />
+		<property name="maxPoolSize" value="20" />
+		<!--当连接池中的连接耗尽的时候c3p0一次同时获取的连接数。默认值: 3 -->
+		<property name="acquireIncrement" value="5" />
+	</bean>
+		    
+	<!-- 配置hibernate的SessionFactory -->
+	<bean name="sessionFactory" 
+				class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+				<property name="dataSource" ref="dataSource"></property>
+				<property name="hibernateProperties">
+					<props>
+						<prop key="hibernate.dialect">${hibernate.dialect}</prop>
+						<prop key="hibernate.show_sql">${hibernate.show_sql}</prop>
+						<prop key="hibernate.format_sql">${hibernate.format_sql}</prop>
+						<prop key="hibernate.hbm2ddl.auto">${hibernate.hbm2ddl.auto}</prop>
+		
+						<!-- 开启二级缓存 ehcache -->
+						<prop key="hibernate.cache.use_second_level_cache">${hibernate.cache.use_second_level_cache}</prop>
+						<prop key="hibernate.cache.use_query_cache">${hibernate.cache.use_query_cache}</prop>
+						<prop key="hibernate.cache.region.factory_class">${hibernate.cache.region.factory_class}</prop>
+						<prop key="hibernate.cache.provider_configuration_file_resource_path">${hibernate.cache.provider_configuration_file_resource_path}
+						</prop>
+			        </props>
+				</property>
+				<!--  -->
+				<property name="packagesToScan">
+					<list>
+						<value>com.wyd.domain</value>
+					</list>
+			    </property>
+	</bean>
+	<!-- 不写会报错，参考官网 -->
+	<bean class="org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor" />
+	
+	<bean id="recordDao" class="com.wyd.daoImpl.RecordDaoImpl"/>
+	
+	<bean id="recordService" class="com.wyd.serviceImpl.RecordServiceImpl"/>
+	
+	<bean class="com.wyd.resource.RecordResource" scope="request"/>
+	
+	<bean class="com.wyd.resource.FileResource" scope="request"/>
+
+	<!-- 用注解来实现事务管理 -->    
+    <bean id="txManager" class="org.springframework.orm.hibernate4.HibernateTransactionManager">    
+        <property name="sessionFactory" ref="sessionFactory"></property>          
+    </bean>  
+    
+    <!-- <aop:aspectj-autoproxy proxy-target-class="true"/> -->
+      
+    <tx:annotation-driven transaction-manager="txManager"/>    
+    
+    <!-- dozer -->   
+    <bean id="mapper" class="org.dozer.spring.DozerBeanMapperFactoryBean">
+	    <property name="mappingFiles">
+	      <list>
+	        <value>classpath:dozer-mapping.xml</value>
+	      </list>
+	    </property>
+    </bean>
+  
+</beans>
